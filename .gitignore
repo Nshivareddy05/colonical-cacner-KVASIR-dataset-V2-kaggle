@@ -1,0 +1,8 @@
+# Dataset
+dataset/
+
+# Python virtual environment
+venv/
+
+# Trained model
+best_efficientnet_vit_model.pth

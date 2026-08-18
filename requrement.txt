@@ -1,0 +1,11 @@
+torch
+torchvision
+timm
+numpy
+Pillow
+matplotlib
+opencv-python
+grad-cam
+Flask
+Flask-Cors
+python-dotenv

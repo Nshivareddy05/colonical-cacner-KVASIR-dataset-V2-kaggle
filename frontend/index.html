@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EndoVision AI - Gastrointestinal Image Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-container">
+            <div class="logo-area">
+                <h1>EndoVision AI</h1>
+                <p class="subtitle">Hybrid EfficientNet-B3 + Vision Transformer</p>
+            </div>
+            
+            <nav class="main-nav">
+                <ul class="nav-list">
+                    <li><a href="#" class="nav-link active" data-target="view-home">Home</a></li>
+                    <li><a href="#" class="nav-link" data-target="view-gallery">Dataset Explorer</a></li>
+                    <li><a href="#" class="nav-link" data-target="view-architecture">Architecture</a></li>
+                    <li><a href="#" class="nav-link" data-target="view-metrics">Metrics</a></li>
+                    <li><a href="#" class="nav-link" data-target="view-eval">Dataset Evaluation</a></li>
+                    <li><a href="#" class="nav-link" data-target="view-history">Patient Records</a></li>
+                    <li><a href="#" class="nav-link" data-target="view-team">Team</a></li>
+                </ul>
+            </nav>
+
+            <div class="status-area">
+                <span class="badge status-badge offline-badge">OFFLINE AI SYSTEM</span>
+                <span class="badge hardware-badge" id="hardware-status">Hardware Status: Checking...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        
+        <!-- View: History -->
+        <div id="view-history" class="page-view">
+            <div class="text-center" style="margin-bottom: var(--spacing-xl);">
+                <h2 class="section-title">Patient Records</h2>
+                <p class="section-subtitle">Review all past endoscopy analyses and their complete patient records.</p>
+            </div>
+            <div id="history-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; max-width: 1200px; margin: 0 auto;">
+                <!-- Injected by JS -->
+            </div>
+        </div>
+
+        <!-- View: Home -->
+        <div id="view-home" class="page-view active">
+            <!-- Hero Section -->
+            <section class="hero-section">
+                <div class="hero-text">
+                    <h2>Intelligent Gastrointestinal Image Analysis</h2>
+                    <p>Hybrid deep learning for gastrointestinal endoscopy image classification and visual explanation.</p>
+                    <p class="description">Upload an endoscopy image to classify the observed category and visualize the image regions contributing to the model's prediction.</p>
+                </div>
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-prompt" id="upload-prompt">
+                        <div class="upload-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        </div>
+                        <h3>Upload Endoscopy Image</h3>
+                        <p>Drag & drop an image here or click to browse</p>
+                        <input type="file" id="file-input" accept="image/png, image/jpeg, image/jpg" hidden>
+                    </div>
+                    <div class="preview-area hidden" id="preview-area">
+                        <img id="image-preview" src="" alt="Preview">
+                        <div class="file-info" style="margin-bottom: 1rem;">
+                            <p id="filename" class="filename"></p>
+                            <p id="filesize" class="filesize"></p>
+                        </div>
+                        
+                        <div style="width: 100%; text-align: left; margin-bottom: 1rem;">
+                            <input type="text" id="patient-name" placeholder="Patient Name (Optional)" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+                            <textarea id="patient-details" placeholder="Additional Patient Details (Optional)" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); resize: vertical; min-height: 60px;"></textarea>
+                        </div>
+
+                        <button class="btn btn-primary" id="analyze-btn" style="width: 100%; margin-bottom: 5px;">Analyze Image</button>
+                        <div style="display: flex; gap: 10px; width: 100%;">
+                            <button class="btn btn-secondary" id="reupload-btn" style="flex: 1;">Upload Another</button>
+                            <button class="btn btn-secondary" id="clear-btn" style="flex: 1;">Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <div id="loading-overlay" class="loading-overlay hidden">
+                <div class="spinner"></div>
+                <div class="loading-text">
+                    <h3>Analyzing image...</h3>
+                    <p>Running hybrid deep-learning model...</p>
+                    <p>Generating Grad-CAM explanation...</p>
+                </div>
+            </div>
+
+            <!-- Results Section (Hidden until analysis) -->
+            <div id="results-container" class="results-container hidden">
+                <!-- Main Prediction & Top 3 -->
+                <section class="prediction-grid">
+                    <div class="card main-prediction-card">
+                        <h3 id="prediction-result-title">Prediction Result</h3>
+                        <div class="prediction-content">
+                            <div class="predicted-class" id="prediction-success">
+                                <span class="label">Predicted Class</span>
+                                <h2 id="main-class-result">--</h2>
+                                <div class="mapped-status-badge" id="mapped-status-result" style="font-size: 1.2rem; font-weight: bold; margin-top: 5px;">--</div>
+                            </div>
+                            
+                            <div class="prediction-warning hidden" id="prediction-warning">
+                                <h2 class="warning-title">⚠ Unidentified Image</h2>
+                                <p class="warning-desc">Please upload only endoscopy images.</p>
+                            </div>
+                            <div class="confidence-circle" id="confidence-circle-container">
+                                <svg viewBox="0 0 36 36" class="circular-chart blue">
+                                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    <path class="circle" id="confidence-circle-path" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    <text x="18" y="20.35" class="percentage" id="confidence-text">0%</text>
+                                </svg>
+                                <span class="label">Confidence</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card top-predictions-card" id="top-predictions-card">
+                        <h3 id="top-predictions-title">Top Predictions</h3>
+                        <p id="top-predictions-desc" class="hidden" style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">Model could not confidently classify this image.</p>
+                        <div class="progress-bars" id="top-predictions-container">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Grad-CAM Section -->
+                <section class="card explainability-card" id="gradcam-section">
+                    <div class="section-header">
+                        <h2>Model Explainability</h2>
+                        <p class="subtitle">Grad-CAM visualization of regions contributing to the prediction.</p>
+                    </div>
+                    
+                    <div class="gradcam-panels">
+                        <div class="panel">
+                            <h4>Original Image</h4>
+                            <img id="panel-original" src="" alt="Original">
+                        </div>
+                        <div class="panel">
+                            <h4>Grad-CAM Heatmap</h4>
+                            <img id="panel-heatmap" src="" alt="Heatmap">
+                        </div>
+                        <div class="panel">
+                            <h4>Grad-CAM Overlay</h4>
+                            <img id="panel-overlay" src="" alt="Overlay">
+                        </div>
+                        <div class="panel">
+                            <h4>Histopathology Match</h4>
+                            <img id="panel-histo" src="" alt="Histopathology Match">
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <hr class="section-divider">
+
+            <div class="workflow-section">
+                <h2>Demo Workflow</h2>
+                <div class="workflow-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <p>Upload Image</p>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <p>Preprocess Image</p>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <p>Hybrid Model Inference</p>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <p>Top-3 Predictions</p>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step">
+                        <div class="step-number">5</div>
+                        <p>Grad-CAM Explanation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Dataset Explorer -->
+        <div id="view-gallery" class="page-view">
+            <section class="gallery-section">
+                <div class="gallery-controls card">
+                    <div class="control-group">
+                        <label for="gallery-class-select">Select Disease Class:</label>
+                        <select id="gallery-class-select" class="form-select">
+                            <option value="esophagitis">Esophagitis</option>
+                            <option value="normal-cecum">Normal Cecum</option>
+                            <option value="normal-pylorus">Normal Pylorus</option>
+                            <option value="normal-z-line">Normal Z-line</option>
+                            <option value="polyps">Polyps</option>
+                            <option value="ulcerative-colitis">Ulcerative Colitis</option>
+                        </select>
+                    </div>
+                    <div class="gallery-actions">
+                        <button class="btn btn-primary" id="gallery-next-btn">Load Sample Image</button>
+                    </div>
+                </div>
+
+                <!-- Gallery Loading State -->
+                <div id="gallery-loading" class="loading-overlay hidden" style="position: relative; height: 300px; background: transparent;">
+                    <div class="spinner"></div>
+                    <div class="loading-text">
+                        <h3>Processing dataset sample...</h3>
+                    </div>
+                </div>
+
+                <!-- Gallery Results -->
+                <div id="gallery-results" class="results-container hidden">
+                    <section class="prediction-grid">
+                        <div class="card main-prediction-card">
+                            <h3>Prediction Result</h3>
+                            <div class="prediction-content">
+                                <div class="predicted-class" id="gallery-prediction-success">
+                                    <span class="label">Predicted Class</span>
+                                    <h2 id="gallery-class-result">--</h2>
+                                    <div class="actual-class-badge" id="gallery-actual-class">Actual: --</div>
+                                    <div class="mapped-status-badge" id="gallery-mapped-status" style="font-size: 1.2rem; font-weight: bold; margin-top: 5px;">--</div>
+                                </div>
+                                <div class="prediction-warning hidden" id="gallery-prediction-warning">
+                                    <h2 class="warning-title">⚠ Unidentified Image</h2>
+                                    <div class="actual-class-badge" id="gallery-actual-class-warn">Actual: --</div>
+                                </div>
+                                <div class="confidence-circle" id="gallery-confidence-circle-container">
+                                    <svg viewBox="0 0 36 36" class="circular-chart blue">
+                                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path class="circle" id="gallery-confidence-circle-path" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <text x="18" y="20.35" class="percentage" id="gallery-confidence-text">0%</text>
+                                    </svg>
+                                    <span class="label">Confidence</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card top-predictions-card" id="gallery-top-predictions-card">
+                            <h3 id="gallery-top-predictions-title">Top Predictions</h3>
+                            <p id="gallery-top-predictions-desc" class="hidden" style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">Model could not confidently classify this image.</p>
+                            <div class="progress-bars" id="gallery-top-predictions-container">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card explainability-card" id="gallery-gradcam-section">
+                        <div class="section-header">
+                            <h2>Model Explainability</h2>
+                        </div>
+                        <div class="gradcam-panels">
+                            <div class="panel">
+                                <h4>Original Image</h4>
+                                <img id="gallery-panel-original" src="" alt="Original">
+                            </div>
+                            <div class="panel">
+                                <h4>Grad-CAM Heatmap</h4>
+                                <img id="gallery-panel-heatmap" src="" alt="Heatmap">
+                            </div>
+                            <div class="panel">
+                                <h4>Grad-CAM Overlay</h4>
+                                <img id="gallery-panel-overlay" src="" alt="Overlay">
+                            </div>
+                            <div class="panel">
+                                <h4>Histopathology Match</h4>
+                                <img id="gallery-panel-histo" src="" alt="Histopathology Match">
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </section>
+        </div>
+
+        <!-- View: Architecture -->
+        <div id="view-architecture" class="page-view">
+            <div class="architecture-dataset-grid">
+                <div class="card architecture-card">
+                    <h2>Model Architecture</h2>
+                    <div class="pipeline-viz">
+                        <div class="pipeline-node">Input Endoscopy Image</div>
+                        <div class="pipeline-arrow">↓</div>
+                        <div class="pipeline-parallel">
+                            <div class="pipeline-node">EfficientNet-B3</div>
+                            <div class="pipeline-plus">+</div>
+                            <div class="pipeline-node">Vision Transformer (ViT-Base/16)</div>
+                        </div>
+                        <div class="pipeline-arrow">↓</div>
+                        <div class="pipeline-node">Feature Fusion</div>
+                        <div class="pipeline-arrow">↓</div>
+                        <div class="pipeline-node">Fully Connected Layers</div>
+                        <div class="pipeline-arrow">↓</div>
+                        <div class="pipeline-node">8-Class Prediction</div>
+                    </div>
+                    <ul class="info-list">
+                        <li><strong>Architecture:</strong> Hybrid EfficientNet-B3 + ViT</li>
+                        <li><strong>Input:</strong> 224 × 224 RGB image</li>
+                        <li><strong>Classes:</strong> 8</li>
+                        <li><strong>Training Epochs:</strong> 25</li>
+                        <li><strong>Best Epoch:</strong> 8</li>
+                        <li><strong>Best Validation MCC:</strong> 0.9125</li>
+                        <li><strong>Test Accuracy:</strong> 90.66%</li>
+                        <li><strong>Test MCC:</strong> 0.8939</li>
+                    </ul>
+                </div>
+
+                <div class="dataset-categories-col">
+                    <div class="card dataset-card">
+                        <h2>Dataset</h2>
+                        <ul class="info-list">
+                            <li><strong>Dataset:</strong> Kvasir v2</li>
+                            <li><strong>Total Images:</strong> 8000</li>
+                            <li><strong>Classes:</strong> 8</li>
+                            <li><strong>Test Images:</strong> 1584</li>
+                        </ul>
+                    </div>
+
+                    <div class="card categories-card">
+                        <h2>Gastrointestinal Image Categories</h2>
+                        <div class="categories-grid">
+                            <div class="cat-pill">Esophagitis <span class="lbl">esophagitis</span></div>
+                            <div class="cat-pill">Normal Cecum <span class="lbl">normal-cecum</span></div>
+                            <div class="cat-pill">Normal Pylorus <span class="lbl">normal-pylorus</span></div>
+                            <div class="cat-pill">Normal Z-line <span class="lbl">normal-z-line</span></div>
+                            <div class="cat-pill">Polyps <span class="lbl">polyps</span></div>
+                            <div class="cat-pill">Ulcerative Colitis <span class="lbl">ulcerative-colitis</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Metrics -->
+        <div id="view-metrics" class="page-view">
+            <div class="performance-metrics">
+                <h2>Model Performance</h2>
+                <div class="metric-cards">
+                    <div class="metric-card">
+                        <span class="value">90.66%</span>
+                        <span class="label">Test Accuracy</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="value">0.8939</span>
+                        <span class="label">Test MCC</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="value">0.90</span>
+                        <span class="label">Macro F1</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="value">0.90</span>
+                        <span class="label">Weighted F1</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="value">8</span>
+                        <span class="label">Number of Classes</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="value">8000</span>
+                        <span class="label">Dataset Images</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="value">1584</span>
+                        <span class="label">Test Images</span>
+                    </div>
+                </div>
+                <div class="performance-notes">
+                    <p>Best validation MCC: 0.9125</p>
+                    <p>Best validation performance was achieved at Epoch 8.</p>
+                </div>
+            </div>
+
+            <div class="matrix-and-metrics">
+                <div class="card confusion-matrix-card">
+                    <h2>Confusion Matrix</h2>
+                    <div class="matrix-container" id="confusion-matrix-container">
+                        <!-- Matrix built in JS -->
+                    </div>
+                    <div class="matrix-legend">
+                        <span>Low</span>
+                        <div class="legend-gradient"></div>
+                        <span>High</span>
+                    </div>
+                    <p class="matrix-labels">Rows = Actual Class | Columns = Predicted Class</p>
+                </div>
+
+                <div class="card classification-metrics-card">
+                    <h2>Classification Metrics</h2>
+                    <div class="table-responsive">
+                        <table class="metrics-table">
+                            <thead>
+                                <tr>
+                                    <th>Class</th>
+                                    <th>Precision</th>
+                                    <th>Recall</th>
+                                    <th>F1-score</th>
+                                    <th>Support</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>esophagitis</td><td>0.89</td><td>0.72</td><td>0.80</td><td>198</td></tr>
+                                <tr><td>normal-cecum</td><td>0.95</td><td>0.95</td><td>0.95</td><td>198</td></tr>
+                                <tr><td>normal-pylorus</td><td>0.98</td><td>0.97</td><td>0.98</td><td>198</td></tr>
+                                <tr><td>normal-z-line</td><td>0.76</td><td>0.90</td><td>0.83</td><td>198</td></tr>
+                                <tr><td>polyps</td><td>0.93</td><td>0.91</td><td>0.92</td><td>198</td></tr>
+                                <tr><td>ulcerative-colitis</td><td>0.93</td><td>0.96</td><td>0.94</td><td>198</td></tr>
+                                <tr class="summary-row"><td>Accuracy</td><td></td><td></td><td>0.90</td><td>1584</td></tr>
+                                <tr class="summary-row"><td>Macro avg</td><td>0.91</td><td>0.90</td><td>0.90</td><td>1584</td></tr>
+                                <tr class="summary-row"><td>Weighted avg</td><td>0.91</td><td>0.90</td><td>0.90</td><td>1584</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3 style="margin-top: 2rem; margin-bottom: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">F1-Score Visualization</h3>
+                    <div class="chart-container" style="position: relative; height:350px; width:100%; margin-bottom: 2rem;">
+                        <canvas id="f1Chart"></canvas>
+                    </div>
+
+                    <h3 style="margin-top: 1rem; margin-bottom: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">Precision Visualization</h3>
+                    <div class="chart-container" style="position: relative; height:350px; width:100%">
+                        <canvas id="precisionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Dataset Evaluation -->
+        <div id="view-eval" class="page-view">
+            <section class="eval-section">
+                <div class="eval-controls card">
+                    <div class="control-group">
+                        <label for="eval-dataset-select">Select Dataset:</label>
+                        <select id="eval-dataset-select" class="form-select">
+                            <option value="cancer-0">Cancer 0 (No Cancer)</option>
+                            <option value="cancer-1">Cancer 1 (Cancer)</option>
+                            <option value="histopathology">Histopathology</option>
+                        </select>
+                    </div>
+                    <div class="eval-actions">
+                        <button class="btn btn-primary" id="eval-next-btn">Evaluate Random Image</button>
+                    </div>
+                </div>
+
+                <!-- Stats Section -->
+                <div id="eval-stats-container" class="performance-metrics">
+                    <h2>Dataset Statistics</h2>
+                    <div class="metric-cards" style="grid-template-columns: repeat(3, 1fr);">
+                        <!-- Cancer 0 Stats -->
+                        <div class="metric-card">
+                            <h4 style="margin: 0; color: var(--text-secondary);">Cancer 0</h4>
+                            <div style="font-size: 0.9rem; margin-top: 10px; text-align: left;">
+                                <p>Total Images: <span id="stat-c0-total">0</span></p>
+                                <p>Correct: <span id="stat-c0-correct" style="color: #4CAF50;">0</span></p>
+                                <p>Incorrect: <span id="stat-c0-incorrect" style="color: #F44336;">0</span></p>
+                                <p>Accuracy: <span id="stat-c0-accuracy">0%</span></p>
+                            </div>
+                        </div>
+                        <!-- Cancer 1 Stats -->
+                        <div class="metric-card">
+                            <h4 style="margin: 0; color: var(--text-secondary);">Cancer 1</h4>
+                            <div style="font-size: 0.9rem; margin-top: 10px; text-align: left;">
+                                <p>Total Images: <span id="stat-c1-total">0</span></p>
+                                <p>Correct: <span id="stat-c1-correct" style="color: #4CAF50;">0</span></p>
+                                <p>Incorrect: <span id="stat-c1-incorrect" style="color: #F44336;">0</span></p>
+                                <p>Accuracy: <span id="stat-c1-accuracy">0%</span></p>
+                            </div>
+                        </div>
+                        <!-- Overall Stats -->
+                        <div class="metric-card" style="border: 1px solid var(--primary-color);">
+                            <h4 style="margin: 0; color: var(--primary-color);">Overall</h4>
+                            <div style="font-size: 0.9rem; margin-top: 10px; text-align: left;">
+                                <p>Total Images: <span id="stat-all-total">0</span></p>
+                                <p>Correct: <span id="stat-all-correct" style="color: #4CAF50;">0</span></p>
+                                <p>Incorrect: <span id="stat-all-incorrect" style="color: #F44336;">0</span></p>
+                                <p>Accuracy: <span id="stat-all-accuracy">0%</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Histopathology View -->
+                <div id="eval-histo-container" class="card hidden" style="margin-top: 2rem;">
+                    <h2>Histopathology Samples</h2>
+                    <div id="histo-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 1rem;">
+                        <!-- Images injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Eval Loading State -->
+                <div id="eval-loading" class="loading-overlay hidden" style="position: relative; height: 300px; background: transparent; margin-top: 2rem;">
+                    <div class="spinner"></div>
+                    <div class="loading-text">
+                        <h3>Evaluating image...</h3>
+                    </div>
+                </div>
+
+                <!-- Eval Results -->
+                <div id="eval-results" class="results-container hidden" style="margin-top: 2rem;">
+                    <section class="prediction-grid" style="grid-template-columns: 1fr;">
+                        <div class="card main-prediction-card" style="text-align: left; padding: 2rem;">
+                            <h3 style="margin-bottom: 1.5rem; text-align: center;">Evaluation Result</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="flex: 1;">
+                                    <p style="font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text-secondary);">Ground Truth: <strong id="eval-ground-truth" style="color: var(--text-color);">--</strong></p>
+                                    <p style="font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text-secondary);">Model Prediction: <strong id="eval-prediction" style="color: var(--text-color);">--</strong></p>
+                                    <p style="font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text-secondary);">Model Confidence: <strong id="eval-confidence" style="color: var(--text-color);">--</strong></p>
+                                    <div style="margin-top: 1.5rem;">
+                                        <span id="eval-result-badge" style="padding: 0.5rem 1.5rem; border-radius: 20px; font-weight: bold; font-size: 1.1rem; border: 2px solid transparent;">Result: --</span>
+                                    </div>
+                                </div>
+                                <div class="confidence-circle" style="flex: 0 0 150px; margin: 0;">
+                                    <svg viewBox="0 0 36 36" class="circular-chart blue">
+                                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path class="circle" id="eval-confidence-circle-path" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <text x="18" y="20.35" class="percentage" id="eval-confidence-text">0%</text>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card explainability-card">
+                        <div class="section-header">
+                            <h2>Model Explainability</h2>
+                        </div>
+                        <div class="gradcam-panels">
+                            <div class="panel">
+                                <h4>Original Image</h4>
+                                <img id="eval-panel-original" src="" alt="Original">
+                            </div>
+                            <div class="panel">
+                                <h4>Grad-CAM Heatmap</h4>
+                                <img id="eval-panel-heatmap" src="" alt="Heatmap">
+                            </div>
+                            <div class="panel">
+                                <h4>Grad-CAM Overlay</h4>
+                                <img id="eval-panel-overlay" src="" alt="Overlay">
+                            </div>
+                            <div class="panel">
+                                <h4>Histopathology Match</h4>
+                                <img id="eval-panel-histo" src="" alt="Histopathology Match">
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </section>
+        </div>
+
+        <!-- View: Team -->
+        <div id="view-team" class="page-view">
+            <section class="creators-section">
+                <h2>Project Team</h2>
+                <div class="creators-grid">
+                    <div class="creator-card">
+                        <h4>Monisha</h4>
+                        <p>The Oxford college of Engineering Bengaluru</p>
+                    </div>
+                    <div class="creator-card">
+                        <h4>K Vandana</h4>
+                        <p>The Oxford college of Engineering Bengaluru</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <footer class="app-footer">
+        <p>&copy; 2026 EndoVision AI - Gastrointestinal Endoscopy Analysis System. Powered by Hybrid EfficientNet-ViT.</p>
+    </footer>
+
+    <!-- History Report Modal -->
+    <div id="report-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center; overflow-y: auto;">
+        <div style="background: var(--bg-secondary); border-radius: 12px; width: 90%; max-width: 1000px; padding: 2rem; position: relative; margin: 2rem 0;">
+            <button id="close-modal-btn" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-primary); font-size: 1.5rem; cursor: pointer;">&times;</button>
+            <h2 style="margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Patient Analysis Report</h2>
+            
+            <div style="background: rgba(58, 134, 255, 0.1); border: 1px solid var(--accent-blue); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <h3 id="modal-record-id" style="color: var(--accent-blue); margin-bottom: 5px; font-family: monospace;">PR-XXXX</h3>
+                <h4 id="modal-patient-name" style="margin-bottom: 5px; color: var(--text-primary);">Patient Name</h4>
+                <p id="modal-patient-details" style="color: var(--text-secondary); font-size: 0.9rem;">Patient details...</p>
+            </div>
+            
+            <div style="display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <h3 style="color: var(--text-secondary); margin-bottom: 5px;">Prediction</h3>
+                    <h2 id="modal-prediction" style="color: var(--accent-blue); margin-bottom: 5px;">--</h2>
+                    <div id="modal-status" class="mapped-status-badge" style="display: inline-block;">--</div>
+                </div>
+                <div style="flex: 1; min-width: 250px; text-align: right;">
+                    <h3 style="color: var(--text-secondary); margin-bottom: 5px;">Confidence</h3>
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; border-radius: 50%; border: 4px solid var(--accent-blue);">
+                        <h2 id="modal-confidence" style="margin: 0;">--%</h2>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Model Explainability</h3>
+            <div class="gradcam-panels" style="margin-top: 1rem;">
+                <div class="panel">
+                    <h4>Original Image</h4>
+                    <img id="modal-original" src="" alt="Original">
+                </div>
+                <div class="panel">
+                    <h4>Grad-CAM Heatmap</h4>
+                    <img id="modal-heatmap" src="" alt="Heatmap">
+                </div>
+                <div class="panel">
+                    <h4>Grad-CAM Overlay</h4>
+                    <img id="modal-overlay" src="" alt="Overlay">
+                </div>
+                <div class="panel">
+                    <h4>Histopathology Match</h4>
+                    <img id="modal-histo" src="" alt="Histopathology Match">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
